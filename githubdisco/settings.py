@@ -29,9 +29,9 @@ FEED_EXPORT_FIELDS = None # Each spider yields to a dict with the fields
 # FEED_EXPORT_FIELDS = ['library', 'repo_name', 'login', 'name', 'email'] # top_contributors
 
 # In some unfrequent situations a 403 is returned due to
-# throttling, a couple of retries will be just fine
+# throttling, keep retrying until done
 RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 403]
-RETRY_TIMES = 10
+RETRY_TIMES = 1000000000000
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 1
