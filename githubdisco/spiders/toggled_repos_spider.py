@@ -19,6 +19,12 @@ def java_placeholders(_placeholders):
     placeholders['artifact_id'] = artifact_id
     return placeholders
 
+def get_value_at(list, index, default = None):
+    try:
+        return list[index]
+    except IndexError:
+        return default
+
 class ToggledReposSpider(scrapy.Spider):
     name = "toggled_repos"
 
@@ -99,24 +105,31 @@ class ToggledReposSpider(scrapy.Spider):
         ],
     }
 
-    search_template = 'https://api.github.com/search/code?${params}&page=${page}&per_page=50'
-    per_page = 50
+    search_template = 'https://api.github.com/search/code?${params}&page=${page}&per_page=${per_page}&sort=indexed&order=desc'
+    per_page = 100
+    max_results = 1000
+    min_filesize = 0
+    max_filesize = int(100e6) # https://help.github.com/en/github/managing-large-files/what-is-my-disk-quota
 
     def as_params(self, search_string, languages):
-        params_template = Template("q=%22${search_string}%22+in:file+${extensions_or_filenames}")
+        params_template = Template("q=${search_string}+in:file+${extensions_or_filenames}+size:${start}..${end}")
 
-        extensions = [extensions for lang, extensions in self.extensions_by_lang.items() if lang in languages][0]
+        extensions = get_value_at([extensions for lang, extensions in self.extensions_by_lang.items() if lang in languages], 0, [])
         if len(extensions) > 0:
             yield params_template.substitute({
-                'search_string': search_string,
-                'extensions_or_filenames': '+'.join(['extension:' + ext for ext in extensions])
+                'search_string': '%22' + search_string + '%22',
+                'extensions_or_filenames': '+'.join(['extension:' + ext for ext in extensions]),
+                'start': self.min_filesize,
+                'end': self.max_filesize
             })
 
-        filenames = [filenames for lang, filenames in self.filenames_by_lang.items() if lang in languages][0]
+        filenames = get_value_at([filenames for lang, filenames in self.filenames_by_lang.items() if lang in languages], 0, [])
         if len(filenames) > 0:
             yield params_template.substitute({
-                'search_string': search_string,
-                'extensions_or_filenames': '+'.join(['filename:' + filename for filename in filenames])
+                'search_string': '%22' + search_string + '%22',
+                'extensions_or_filenames': '+'.join(['filename:' + filename for filename in filenames]),
+                'start': self.min_filesize,
+                'end': self.max_filesize
             })
 
     def search_urls(self, library, page=1):
@@ -130,6 +143,7 @@ class ToggledReposSpider(scrapy.Spider):
                 yield url_template.substitute({
                     'params': params,
                     'page': page,
+                    'per_page': self.per_page
                 })
 
     def start_requests(self):
@@ -141,10 +155,17 @@ class ToggledReposSpider(scrapy.Spider):
     def parse(self, response):
         page = response.meta['page']
         json_response = json.loads(response.text)
-        if (json_response['incomplete_results']):
-            self.logger.warn('>>>>>> Incomplete results for %s', response.url)
+        if json_response['incomplete_results'] or json_response['total_count'] > self.max_results:
+            if json_response['incomplete_results']:
+                self.logger.info('Incomplete results for %s', response.url)
+            else:
+                self.logger.info('Split for %s', response.url)
 
-        if len(json_response['items']) > 0:
+            start_url, end_url = self.bisect_by_filesize(response.url)
+            yield response.follow(start_url, headers=self.headers, callback=self.parse, meta=response.meta) if start_url else None
+            yield response.follow(end_url, headers=self.headers, callback=self.parse, meta=response.meta) if end_url else None
+
+        elif len(json_response['items']) > 0:
             for match in json_response['items']:
                 response.meta['repo_name'] = match['repository']['full_name']
                 response.meta['path'] = match['path']
@@ -155,6 +176,7 @@ class ToggledReposSpider(scrapy.Spider):
             response.meta['page'] += 1
             next_page_url = response.url.replace('&page=' + str(page), '&page=' + str(response.meta['page']))
             yield response.follow(next_page_url, headers=self.headers, callback=self.parse, meta=response.meta)
+
         elif page == 1:
             self.logger.warn('!! Found no matches for %s', response.url)
 
@@ -179,7 +201,7 @@ class ToggledReposSpider(scrapy.Spider):
             'import_or_usage': re.escape(import_usage),
         } for artifact, import_usage in placeholders_pairs]
 
-        templates = [templates for lang, templates in self.regexp_templates_by_lang.items() if lang in languages][0]
+        templates = get_value_at([templates for lang, templates in self.regexp_templates_by_lang.items() if lang in languages], 0)
         searches_memo = dict()
 
         self.logger.debug('Placeholders %s', str(placeholders_set))
@@ -229,3 +251,26 @@ class ToggledReposSpider(scrapy.Spider):
                     toggled_repo['library'] = library['library']
                     toggled_repo['library_language'] = library['languages']
                     yield toggled_repo
+
+    def bisect_by_filesize(self, url):
+        """
+        Returns a tuple with two urls with the same query but different filesize ranges.
+        The page is reset to one.
+        """
+
+        size_regexp = r'size:(?P<start>\d+)..(?P<end>\d+)'
+        match = re.search(size_regexp, url)
+        # A match must be present, if not fail hard
+        start, end = (int(size) for size in match.groups((self.min_filesize, self.max_filesize)))
+        mid = int((int(end) - int(start)) / 2)
+        ranges = {
+            'pre': (start, mid) if mid > start else None,
+            'pos': (mid + 1, end) if mid + 1 < end else None
+        }
+
+        first_page_url = re.sub(r'&page=\d+', '&page=1', url)
+
+        return (
+            re.sub(size_regexp, 'size:{0[0]}..{0[1]}'.format(ranges['pre']), first_page_url) if ranges['pre'] else None,
+            re.sub(size_regexp, 'size:{0[0]}..{0[1]}'.format(ranges['pos']), first_page_url) if ranges['pos'] else None
+        )
