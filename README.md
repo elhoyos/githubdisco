@@ -8,9 +8,10 @@ Install scrapy:
 
 ```bash
 $ pip install scrapy
+$ scrapy crawl toggled_repos -o ./results/toggled_repos-`date +%s`.csv -s JOBDIR=crawls/toggled_repos
 ```
 
-The `githubdisco/spiders` have a usage header. Check them out and have fun!
+Check the `githubdisco/spiders` specific usages and have fun!
 
 # TODO
 
