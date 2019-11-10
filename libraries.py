@@ -1,3 +1,13 @@
+"""
+The trace sets of the toggling libraries.
+
+Structure:
+ library: string: our own name of the library
+ artifacts: string[]: 'package_name,package_manager', library names per package manager
+ languages: string: 'language_a,language_b', languages supported by the library
+ imports_usages: string[]: names used to import the library
+"""
+
 LIBRARIES = [
 {
     'library': 'unleash-client-dotnet',
