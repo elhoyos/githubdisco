@@ -13,7 +13,7 @@ LIBRARIES = [
     'library': 'unleash-client-dotnet',
     'artifacts': ['Unleash.FeatureToggle.Client,NuGet'],
     'languages': 'C#,Visual Basic',
-    'imports_usages': ['Unleash'],
+    'imports_usages': [],
 },
 {
     'library': 'unleash-client',
@@ -223,19 +223,19 @@ LIBRARIES = [
     'library': 'unleash-client-python',
     'artifacts': ['UnleashClient,Pypi'],
     'languages': 'Python',
-    'imports_usages': ['UnleashClient'],
+    'imports_usages': [],
 },
 {
     'library': 'launchdarkly',
     'artifacts': ['ldclient-py,Pypi'],
     'languages': 'Python',
-    'imports_usages': ['ldclient'],
+    'imports_usages': [],
 },
 {
     'library': 'Flask FeatureFlags',
     'artifacts': ['Flask-FeatureFlags,Pypi'],
     'languages': 'Python',
-    'imports_usages': ['flask_featureflags'],
+    'imports_usages': [],
 },
 {
     'library': 'Gutter',
@@ -259,7 +259,7 @@ LIBRARIES = [
     'library': 'Waffle',
     'artifacts': ['django-waffle,Pypi'],
     'languages': 'Python',
-    'imports_usages': ['waffle'],
+    'imports_usages': [],
 },
 {
     'library': 'Gargoyle',
@@ -271,7 +271,7 @@ LIBRARIES = [
     'library': 'unleash-client-ruby',
     'artifacts': ['unleash,Rubygems'],
     'languages': 'Ruby',
-    'imports_usages': ['unleash', 'unleash-context'],
+    'imports_usages': [],
 },
 {
     'library': 'launchdarkly',
@@ -295,7 +295,7 @@ LIBRARIES = [
     'library': 'Flip',
     'artifacts': ['flip,Rubygems'],
     'languages': 'Ruby',
-    'imports_usages': ['feature'],
+    'imports_usages': [],
 },
 {
     'library': 'Setler',
