@@ -152,34 +152,46 @@ class ToggledReposSpider(scrapy.Spider):
             for url in self.search_urls(library):
                 yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={ 'library': library, 'page': 1 })
 
+    def get_split_requests(self, response):
+        start_url, end_url = self.bisect_by_filesize(response.url)
+        yield response.follow(start_url, headers=self.headers, callback=self.parse, meta=response.meta) if start_url else None
+        yield response.follow(end_url, headers=self.headers, callback=self.parse, meta=response.meta) if end_url else None
+
+    def get_content_requests(self, response, items):
+        for match in items:
+            response.meta['repo_name'] = match['repository']['full_name']
+            response.meta['path'] = match['path']
+            url = match['git_url']
+            yield response.follow(url, headers=self.headers, callback=self.parse_contents, meta=response.meta)
+
+    def get_next_page_request(self, page, response):
+        response.meta['page'] += 1
+        next_page_url = response.url.replace('&page=' + str(page), '&page=' + str(response.meta['page']))
+        return response.follow(next_page_url, headers=self.headers, callback=self.parse, meta=response.meta)
+
     def parse(self, response):
         page = response.meta['page']
         json_response = json.loads(response.text)
-        if json_response['incomplete_results'] or json_response['total_count'] > self.max_results:
-            if json_response['incomplete_results']:
-                self.logger.info('Incomplete results for %s', response.url)
-            else:
-                self.logger.info('Split for %s', response.url)
 
-            start_url, end_url = self.bisect_by_filesize(response.url)
-            yield response.follow(start_url, headers=self.headers, callback=self.parse, meta=response.meta) if start_url else None
-            yield response.follow(end_url, headers=self.headers, callback=self.parse, meta=response.meta) if end_url else None
+        if len(json_response['items']) > 0:
+            for content_request in self.get_content_requests(response, json_response['items']):
+                yield content_request
 
-        elif len(json_response['items']) > 0:
-            for match in json_response['items']:
-                response.meta['repo_name'] = match['repository']['full_name']
-                response.meta['path'] = match['path']
-                url = match['git_url']
-                yield response.follow(url, headers=self.headers, callback=self.parse_contents, meta=response.meta)
-
-            # Next page
-            response.meta['page'] += 1
-            next_page_url = response.url.replace('&page=' + str(page), '&page=' + str(response.meta['page']))
-            yield response.follow(next_page_url, headers=self.headers, callback=self.parse, meta=response.meta)
-
+            yield self.get_next_page_request(page, response)
         elif page == 1:
             self.logger.warn('!! Found no matches for %s', response.url)
 
+        # Try harder and lookup beyond the limits
+        if json_response['total_count'] > self.max_results:
+            self.logger.info('Split for %s', response.url)
+            for split_request in self.get_split_requests(response):
+                yield split_request
+        elif json_response['incomplete_results']:
+            self.logger.info('Incomplete results for %s', response.url)
+            for split_request in self.get_split_requests(response):
+                yield split_request
+
+    # TODO: augment here, optionally
     def parse_contents(self, response):
         matched = response.meta['library']['matched']
         repo_name = response.meta['repo_name']
