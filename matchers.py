@@ -7,8 +7,6 @@ MATCHERS = {
     # The language family is a string in which each language
     # is separated by a comma.
     # Languages must adhere to its name in GitHub.
-    # TODO: separate all languages by a comma
-    # TODO: verify GitHub recognizes all language names
     'C#,Visual Basic': [
         {
             'file_descriptors': ['json'],

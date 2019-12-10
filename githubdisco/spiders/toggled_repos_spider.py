@@ -12,6 +12,9 @@ from scrapy.shell import inspect_response
 #
 # Usage:
 # $ AUTH_TOKEN=... scrapy crawl toggled_repos -o ../results/normalized/results-github-scraper-`date -u "+%Y%m%d%H%M%S"`.csv
+#
+# Test parsers:
+# $ AUTH_TOKEN=... scrapy check toggled_repos
 
 class ToggledReposSpider(scrapy.Spider):
     name = "toggled_repos"
@@ -41,29 +44,28 @@ class ToggledReposSpider(scrapy.Spider):
             'end': self.max_filesize
         })
 
-    def search_urls(self, library, page=1):
-        for traceset in self.tracesets:
-            for matcher in self.matchers.get(traceset.get('lang_family')):
-                file_descriptors = matcher.get('file_descriptors')
-                descriptors_type = matcher.get('descriptors_type')
-                template = matcher.get('template')
-                self.logger.debug(traceset.get('library'))
-                for traceset_value in traces_in_template(traceset, template):
-                    url_template = Template(self.search_template)
-                    yield (
-                        url_template.substitute({
-                            'params': self.as_params(traceset_value, file_descriptors, descriptors_type),
-                            'page': page,
-                            'per_page': self.per_page
-                        }),
-                        file_descriptors
-                    )
+    def search_urls(self, traceset, page):
+        for matcher in self.matchers.get(traceset.get('lang_family')):
+            file_descriptors = matcher.get('file_descriptors')
+            descriptors_type = matcher.get('descriptors_type')
+            template = matcher.get('template')
+            for traceset_value in traces_in_template(traceset, template):
+                url_template = Template(self.search_template)
+                yield (
+                    url_template.substitute({
+                        'params': self.as_params(traceset_value, file_descriptors, descriptors_type),
+                        'page': page,
+                        'per_page': self.per_page
+                    }),
+                    file_descriptors
+                )
 
     def start_requests(self):
+        page = 1
         for traceset in self.tracesets:
             traceset['matched'] = {} # Track to avoid unnecessary requests
-            for url, file_descriptors in self.search_urls(traceset):
-                yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={ 'traceset': traceset, 'file_descriptors': file_descriptors, 'page': 1 })
+            for url, file_descriptors in self.search_urls(traceset, page):
+                yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={ 'traceset': traceset, 'file_descriptors': file_descriptors, 'page': page })
 
     def bisect_by_filesize(self, url):
         """
@@ -129,6 +131,15 @@ class ToggledReposSpider(scrapy.Spider):
 
     # TODO: augment here, optionally
     def parse_contents(self, response):
+        """
+        Attempts to match relevant regular expressions of a traceset against the
+        content of a file
+
+        @url https://api.github.com/repositories/187016803/git/blobs/578482f90bcca63b7cf83bdb424874e8f57973be
+        @with_meta { "traceset": { "library": "launchdarkly", "lang_family": "Go", "traces": [{ "import_or_usage": "launchdarkly/go-client" }], "matched": {} }, "file_descriptors": ["go"], "page": 1, "repo_name": "andream16/launchdarkly-demo", "path": "main.go" }
+        @returns items 1
+        """
+
         matched = response.meta['traceset']['matched']
         repo_name = response.meta['repo_name']
         if matched.get(repo_name):
@@ -159,4 +170,3 @@ class ToggledReposSpider(scrapy.Spider):
                 toggled_repo['library'] = library
                 toggled_repo['library_language'] = lang_family
                 yield toggled_repo
-

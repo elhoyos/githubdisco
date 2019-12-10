@@ -68,6 +68,10 @@ DOWNLOADER_MIDDLEWARES = {
    'githubdisco.middlewares.GithubdiscoDownloaderMiddleware': 543,
 }
 
+SPIDER_CONTRACTS = {
+   'githubdisco.contracts.WithMetaContract': 10,
+}
+
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
 #EXTENSIONS = {
