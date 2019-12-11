@@ -78,13 +78,8 @@ class GithubdiscoDownloaderMiddleware(object):
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
-        meta = request.meta
-        repo_name = meta.get('repo_name')
-        library = meta.get('library')
-        if repo_name and library and not isinstance(library, str):
-            artifact_name = library['matched'].get(repo_name) if library.get('matched') else None
-            if artifact_name:
-                raise IgnoreRequest('%s already matched in %s' % (library['library'], meta['repo_name']))
+        if hasattr(spider, 'dedup_request') and callable(spider.dedup_request):
+            return spider.dedup_request(request)
 
         return None
 

@@ -7,6 +7,7 @@ from string import Template
 from tracesets import TRACESETS, traces_in_template, regexps
 from matchers import MATCHERS
 from scrapy.shell import inspect_response
+from scrapy.exceptions import IgnoreRequest
 
 # Find toggled repositories via GitHub v3 API
 #
@@ -33,6 +34,24 @@ class ToggledReposSpider(scrapy.Spider):
     max_results = 1000
     min_filesize = 0
     max_filesize = int(100e6) # https://help.github.com/en/github/managing-large-files/what-is-my-disk-quota
+
+    seen_requests = set()
+
+    def seen(self, repo_name):
+        return repo_name in self.seen_requests
+
+    def dedup_request(self, request):
+        """
+        Removes deduplicated requests before passing them to the downloader.
+        Runs at process_request in GithubdiscoDownloaderMiddleware
+        """
+        meta = request.meta
+        repo_name = meta.get('repo_name')
+        if repo_name and self.seen(repo_name):
+            library = meta.get('traceset').get('library')
+            raise IgnoreRequest('%s already matched in %s' % (library, repo_name))
+
+        return None
 
     def as_params(self, search_string, file_descriptors, descriptors_type):
         params_template = Template("q=${search_string}+in:file+${extensions_or_filenames}+size:${start}..${end}")
@@ -63,7 +82,6 @@ class ToggledReposSpider(scrapy.Spider):
     def start_requests(self):
         page = 1
         for traceset in self.tracesets:
-            traceset['matched'] = {} # Track to avoid unnecessary requests
             for url, file_descriptors in self.search_urls(traceset, page):
                 yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={ 'traceset': traceset, 'file_descriptors': file_descriptors, 'page': page })
 
@@ -97,7 +115,11 @@ class ToggledReposSpider(scrapy.Spider):
 
     def get_content_requests(self, response, items):
         for match in items:
-            response.meta['repo_name'] = match['repository']['full_name']
+            repo_name = match['repository']['full_name']
+            if self.seen(repo_name):
+                continue
+
+            response.meta['repo_name'] = repo_name
             response.meta['path'] = match['path']
             url = match['git_url']
             yield response.follow(url, headers=self.headers, callback=self.parse_contents, meta=response.meta)
@@ -136,13 +158,12 @@ class ToggledReposSpider(scrapy.Spider):
         content of a file
 
         @url https://api.github.com/repositories/187016803/git/blobs/578482f90bcca63b7cf83bdb424874e8f57973be
-        @with_meta { "traceset": { "library": "launchdarkly", "lang_family": "Go", "traces": [{ "import_or_usage": "launchdarkly/go-client" }], "matched": {} }, "file_descriptors": ["go"], "page": 1, "repo_name": "andream16/launchdarkly-demo", "path": "main.go" }
+        @with_meta { "traceset": { "library": "launchdarkly", "lang_family": "Go", "traces": [{ "import_or_usage": "launchdarkly/go-client" }] }, "file_descriptors": ["go"], "page": 1, "repo_name": "andream16/launchdarkly-demo", "path": "main.go" }
         @returns items 1
         """
 
-        matched = response.meta['traceset']['matched']
         repo_name = response.meta['repo_name']
-        if matched.get(repo_name):
+        if self.seen(repo_name):
             return
 
         path = response.meta['path']
@@ -156,13 +177,13 @@ class ToggledReposSpider(scrapy.Spider):
         lang_family = traceset.get('lang_family')
         file_descriptors = response.meta['file_descriptors']
         for regexp in regexps(traceset, file_descriptors):
-            if matched.get(repo_name):
-                break
+            if self.seen(repo_name):
+                return
 
             self.logger.debug('Search %s in %s', regexp, path)
             
             if re.search(regexp, content):
-                matched[repo_name] = True
+                self.seen_requests.add(repo_name)
                 self.logger.info('Matched %s in %s', library, repo_name)
                 toggled_repo = { key: None for key in self.csv_fieldnames }
                 toggled_repo['repo_name'] = repo_name
