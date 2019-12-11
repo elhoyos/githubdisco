@@ -133,6 +133,7 @@ class ToggledReposSpider(scrapy.Spider):
             for content_request in self.get_content_requests(response, json_response['items']):
                 yield content_request
 
+            # TODO: do not yield to next page if needs a split
             yield self.get_next_page_request(page, response)
         elif page == 1:
             self.logger.warn('!! Found no matches for %s', response.url)
