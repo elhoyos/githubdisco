@@ -48,17 +48,17 @@ class ToggledReposSpider(scrapy.Spider):
         for matcher in self.matchers.get(traceset.get('lang_family')):
             file_descriptors = matcher.get('file_descriptors')
             descriptors_type = matcher.get('descriptors_type')
-            template = matcher.get('template')
-            for traceset_value in traces_in_template(traceset, template):
-                url_template = Template(self.search_template)
-                yield (
-                    url_template.substitute({
-                        'params': self.as_params(traceset_value, file_descriptors, descriptors_type),
-                        'page': page,
-                        'per_page': self.per_page
-                    }),
-                    file_descriptors
-                )
+            for template in matcher.get('templates'):
+                for traceset_value in traces_in_template(traceset, template):
+                    url_template = Template(self.search_template)
+                    yield (
+                        url_template.substitute({
+                            'params': self.as_params(traceset_value, file_descriptors, descriptors_type),
+                            'page': page,
+                            'per_page': self.per_page
+                        }),
+                        file_descriptors
+                    )
 
     def start_requests(self):
         page = 1
