@@ -39,7 +39,7 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['txt'],
                 'descriptors_type': 'extension',
-                'template': '${foo}',
+                'templates': ['${foo}'],
             },
         ]
     })
@@ -62,7 +62,7 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['java'],
                 'descriptors_type': 'extension',
-                'template': '${foo}',
+                'templates': ['${foo}'],
             },
         ]
     })
@@ -84,7 +84,7 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['java', 'txt'],
                 'descriptors_type': 'extension',
-                'template': '${foo}',
+                'templates': ['${foo}'],
             },
         ]
     })

@@ -429,6 +429,9 @@ TRACESETS = [
             {
                 'artifact_name': 'UnleashClient',
             },
+            {
+                'import_or_usage': 'UnleashClient',
+            },
         ]
     },
     {
@@ -438,6 +441,9 @@ TRACESETS = [
             {
                 'artifact_name': 'ldclient-py',
             },
+            {
+                'import_or_usage': 'ldclient',
+            },
         ]
     },
     {
@@ -446,6 +452,9 @@ TRACESETS = [
         'traces': [
             {
                 'artifact_name': 'Flask-FeatureFlags',
+            },
+            {
+                'import_or_usage': 'flask_featureflags',
             },
         ]
     },
@@ -485,7 +494,10 @@ TRACESETS = [
             },
             {
                 'import_or_usage': 'flagon.feature',
-            }
+            },
+            {
+                'django_setup': 'flagon.backends.db_django',
+            },
         ]
     },
     {
@@ -494,6 +506,15 @@ TRACESETS = [
         'traces': [
             {
                 'artifact_name': 'django-waffle',
+            },
+            {
+                'import_or_usage': 'waffle',
+            },
+            {
+                'django_setup': 'waffle',
+            },
+            {
+                'django_setup': 'waffle.middleware.WaffleMiddleware',
             },
         ]
     },
@@ -511,7 +532,7 @@ TRACESETS = [
                 'import_or_usage': 'gargoyle.decorators',
             },
             {
-                'import_or_usage': 'gargoyle',
+                'django_setup': 'gargoyle',
             }
         ]
     },

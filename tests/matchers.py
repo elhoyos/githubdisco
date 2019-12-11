@@ -1,5 +1,5 @@
 import unittest
-from matchers import MATCHERS, get_regexps
+from matchers import MATCHERS, get_regexps, keys_in_template
 from textwrap import dedent
 
 tests = [
@@ -319,7 +319,7 @@ tests = [
             'import_or_usage': 'mylibrary'
         },
         'fixture': '''
-          from mylibrary.utils import a, b
+          import mylibrary
         '''
     },
     {
@@ -329,14 +329,14 @@ tests = [
             'import_or_usage': 'mylibrary'
         },
         'fixture': '''
-          import mylibrary
+          from mylibrary.utils import a, b
         '''
     },
     {
         'lang_family': 'Python',
         'file_descriptor': 'py',
         'placeholders': {
-            'import_or_usage': 'mylibrary'
+            'django_setup': 'mylibrary'
         },
         'fixture': '''
           INSTALLED_APPS = (
@@ -350,7 +350,7 @@ tests = [
         'lang_family': 'Python',
         'file_descriptor': 'py',
         'placeholders': {
-            'import_or_usage': 'mylibrary'
+            'django_setup': 'mylibrary'
         },
         'fixture': '''
           MIDDLEWARE_CLASSES = (
@@ -364,7 +364,7 @@ tests = [
         'lang_family': 'Python',
         'file_descriptor': 'py',
         'placeholders': {
-            'import_or_usage': 'mylibrary'
+            'django_setup': 'mylibrary'
         },
         'fixture': '''
           THIRD_PARTY_APPS = (
@@ -373,6 +373,18 @@ tests = [
               'bar',  # bar
               'baz.bar', # baz.bar
           )
+        '''
+    },
+    {
+        'lang_family': 'Python',
+        'file_descriptor': 'txt',
+        'placeholders': {
+            'artifact_name': 'my-library'
+        },
+        'fixture': '''
+          foo==1.0.0
+          my-library==2.1.1
+          bar==2.3.4
         '''
     },
     {
@@ -445,6 +457,12 @@ class TestMatchers(unittest.TestCase):
 
                 if args.get('regexp') is None:
                     raise LookupError
+
+    def test_keys_in_template(self):
+        self.assertTrue(keys_in_template(['foo', 'bar'], '${bar}'))
+
+    def test_keys_not_in_template(self):
+        self.assertFalse(keys_in_template(['foo', 'baz'], '${bar}'))
 
 if __name__ == '__main__':
     unittest.main()
