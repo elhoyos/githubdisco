@@ -125,6 +125,9 @@ class ToggledReposSpider(scrapy.Spider):
         next_page_url = response.url.replace('&page=' + str(page), '&page=' + str(response.meta['page']))
         return response.follow(next_page_url, callback=self.parse, meta=response.meta)
 
+    def needs_a_split(self, json_response):
+        return json_response['total_count'] > self.max_results or json_response['incomplete_results']
+
     def parse(self, response):
         page = response.meta['page']
         json_response = json.loads(response.text)
@@ -133,18 +136,20 @@ class ToggledReposSpider(scrapy.Spider):
             for content_request in self.get_content_requests(response, json_response['items']):
                 yield content_request
 
-            # TODO: do not yield to next page if needs a split
-            yield self.get_next_page_request(page, response)
+            if self.needs_a_split(json_response):
+                self.logger.debug('No next page for %s, needs a split' % response.url)
+            else:
+                yield self.get_next_page_request(page, response)
         elif page == 1:
             self.logger.warn('!! Found no matches for %s', response.url)
 
-        # Try harder and lookup beyond the limits
+        # Split: try harder and lookup beyond the limits
         if json_response['total_count'] > self.max_results:
-            self.logger.info('Split for %s', response.url)
+            self.logger.debug('Split for %s', response.url)
             for split_request in self.get_split_requests(response):
                 yield split_request
         elif json_response['incomplete_results']:
-            self.logger.info('Incomplete results for %s', response.url)
+            self.logger.debug('Incomplete results for %s', response.url)
             for split_request in self.get_split_requests(response):
                 yield split_request
 
