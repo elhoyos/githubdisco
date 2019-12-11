@@ -39,7 +39,10 @@ CONCURRENT_REQUESTS = 6 # Set to your number of tokens
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 0.9 # 5000 req/hour => 0.72 sec/req
+# GitHub max limit is 5000 req/hour => 0.72 sec/req
+# But you do not want to delay much from it to get advantage of the concurrent
+# requests.
+DOWNLOAD_DELAY = 0.3
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
