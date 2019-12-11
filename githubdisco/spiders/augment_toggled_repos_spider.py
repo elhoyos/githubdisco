@@ -9,14 +9,11 @@ from calendar import timegm
 # Extract agumented info for toggled repositories via GitHub v3 API
 #
 # Usage:
-# $ AUTH_TOKEN=... scrapy crawl augment_toggled_repos -a repos_filename=repositories.csv -o ../results/raw/results-augmented-data-`date -u "+%Y%m%d%H%M%S"`.csv
+# $ scrapy crawl augment_toggled_repos -a repos_filename=repositories.csv -o ../results/raw/results-augmented-data-`date +%s`.csv
 
 class AugmentToggledReposSpider(scrapy.Spider):
     name = "augment_toggled_repos"
     handle_httpstatus_list = [404]
-    headers = {
-        'Authorization': 'Bearer ' + os.environ['AUTH_TOKEN'],
-    }
     augmented = {}
     max_items_per_page = 100
 
@@ -36,9 +33,9 @@ class AugmentToggledReposSpider(scrapy.Spider):
             }
             meta = { 'repo_name': repo_name, 'page': 1 }
             repo_info_url = 'https://api.github.com/repos/{0}'.format(repo_name)
-            yield scrapy.Request(url=repo_info_url, headers=self.headers, callback=self.parse_repo_info, meta=meta)
-            yield scrapy.Request(self.get_contributors_url(meta), headers=self.headers, callback=self.parse_contributors, meta=meta)
-            yield scrapy.Request(self.get_commits_list_url(meta), headers=self.headers, callback=self.parse_first_commit, meta=meta)
+            yield scrapy.Request(url=repo_info_url, callback=self.parse_repo_info, meta=meta)
+            yield scrapy.Request(self.get_contributors_url(meta), callback=self.parse_contributors, meta=meta)
+            yield scrapy.Request(self.get_commits_list_url(meta), callback=self.parse_first_commit, meta=meta)
 
     def load_toggled_repos(self):
         csv_filename = self.repos_filename
@@ -94,7 +91,7 @@ class AugmentToggledReposSpider(scrapy.Spider):
 
         if contributors == self.max_items_per_page:
             meta['page'] += 1
-            yield scrapy.Request(self.get_contributors_url(meta), headers=self.headers, callback=self.parse_contributors, meta=meta)
+            yield scrapy.Request(self.get_contributors_url(meta), callback=self.parse_contributors, meta=meta)
 
         if contributors == 0 or contributors < self.max_items_per_page:
             augmented_data['___stage___'] += 1
@@ -125,7 +122,7 @@ class AugmentToggledReposSpider(scrapy.Spider):
             yield self.augmented_complete(augmented_data)
         elif meta['page'] == 1:
             meta['page'] = last_page
-            yield scrapy.Request(self.get_commits_list_url(meta), headers=self.headers, callback=self.parse_first_commit, meta=meta)
+            yield scrapy.Request(self.get_commits_list_url(meta), callback=self.parse_first_commit, meta=meta)
 
     def handle_404(self, augmented_data):
         augmented_data['___stage___'] += 1

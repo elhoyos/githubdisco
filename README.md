@@ -11,6 +11,8 @@ $ pip install scrapy
 $ scrapy crawl toggled_repos -o ./results/toggled_repos-`date +%s`.csv -s JOBDIR=crawls/toggled_repos
 ```
 
+Now, create a `.tokens` file with GitHub tokens to with enough permissions to search through public repositories.
+
 Check the `githubdisco/spiders` specific usages and have fun!
 
 # TODO

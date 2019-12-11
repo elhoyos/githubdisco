@@ -7,6 +7,7 @@
 
 from scrapy import signals
 from scrapy.exceptions import IgnoreRequest
+from random import randint
 
 class GithubdiscoSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
@@ -61,12 +62,28 @@ class GithubdiscoDownloaderMiddleware(object):
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
 
+    tokens = ()
+
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
+
+    def get_any_token(self):
+        if len(self.tokens) == 0:
+            with open('.tokens') as file:
+                content = file.readlines()
+            self.tokens = tuple(token.strip() for token in content)
+
+        return self.tokens[randint(0, len(self.tokens) - 1)]
+
+    def get_auth_header(self):
+        headers = {
+            'Authorization': 'Bearer ' + self.get_any_token(),
+        }
+        return headers
 
     def process_request(self, request, spider):
         # Called for each request that goes through the downloader
@@ -78,6 +95,10 @@ class GithubdiscoDownloaderMiddleware(object):
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
+
+        # Set GitHub authentication header
+        request.headers.update(self.get_auth_header())
+
         if hasattr(spider, 'dedup_request') and callable(spider.dedup_request):
             return spider.dedup_request(request)
 
@@ -100,6 +121,9 @@ class GithubdiscoDownloaderMiddleware(object):
         # - return None: continue processing this exception
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
+        if isinstance(exception, FileNotFoundError):
+            return None
+
         pass
 
     def spider_opened(self, spider):

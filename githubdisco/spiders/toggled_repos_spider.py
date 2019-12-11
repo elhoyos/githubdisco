@@ -12,19 +12,15 @@ from scrapy.exceptions import IgnoreRequest
 # Find toggled repositories via GitHub v3 API
 #
 # Usage:
-# $ AUTH_TOKEN=... scrapy crawl toggled_repos -o ../results/normalized/results-github-scraper-`date -u "+%Y%m%d%H%M%S"`.csv
+# $ scrapy crawl toggled_repos -o ../results/normalized/results-github-scraper-`date -u "+%Y%m%d%H%M%S"`.csv
 #
 # Test parsers:
-# $ AUTH_TOKEN=... scrapy check toggled_repos
+# $ scrapy check toggled_repos
 
 class ToggledReposSpider(scrapy.Spider):
     name = "toggled_repos"
 
     csv_fieldnames = ['repo_name', 'path', 'language', 'size_bytes', 'library', 'library_language', 'last_commit_ts', 'forked_from']
-
-    headers = {
-        'Authorization': 'Bearer ' + os.environ['AUTH_TOKEN'],
-    }
 
     tracesets = TRACESETS
     matchers = MATCHERS
@@ -83,7 +79,7 @@ class ToggledReposSpider(scrapy.Spider):
         page = 1
         for traceset in self.tracesets:
             for url, file_descriptors in self.search_urls(traceset, page):
-                yield scrapy.Request(url=url, headers=self.headers, callback=self.parse, meta={ 'traceset': traceset, 'file_descriptors': file_descriptors, 'page': page })
+                yield scrapy.Request(url=url, callback=self.parse, meta={ 'traceset': traceset, 'file_descriptors': file_descriptors, 'page': page })
 
     def bisect_by_filesize(self, url):
         """
@@ -110,8 +106,8 @@ class ToggledReposSpider(scrapy.Spider):
 
     def get_split_requests(self, response):
         start_url, end_url = self.bisect_by_filesize(response.url)
-        yield response.follow(start_url, headers=self.headers, callback=self.parse, meta=response.meta) if start_url else None
-        yield response.follow(end_url, headers=self.headers, callback=self.parse, meta=response.meta) if end_url else None
+        yield response.follow(start_url, callback=self.parse, meta=response.meta) if start_url else None
+        yield response.follow(end_url, callback=self.parse, meta=response.meta) if end_url else None
 
     def get_content_requests(self, response, items):
         for match in items:
@@ -122,12 +118,12 @@ class ToggledReposSpider(scrapy.Spider):
             response.meta['repo_name'] = repo_name
             response.meta['path'] = match['path']
             url = match['git_url']
-            yield response.follow(url, headers=self.headers, callback=self.parse_contents, meta=response.meta)
+            yield response.follow(url, callback=self.parse_contents, meta=response.meta)
 
     def get_next_page_request(self, page, response):
         response.meta['page'] += 1
         next_page_url = response.url.replace('&page=' + str(page), '&page=' + str(response.meta['page']))
-        return response.follow(next_page_url, headers=self.headers, callback=self.parse, meta=response.meta)
+        return response.follow(next_page_url, callback=self.parse, meta=response.meta)
 
     def parse(self, response):
         page = response.meta['page']

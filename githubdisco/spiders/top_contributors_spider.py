@@ -11,13 +11,10 @@ from copy import copy
 # it is used instead and 'repo_name' is computed from every newline in the entry as a GitHub repository url.
 #
 # Usage:
-# $ AUTH_TOKEN=... scrapy crawl top_contributors -a repos_filename=libraries.csv -o contributors.csv
+# $ scrapy crawl top_contributors -a repos_filename=libraries.csv -o contributors.csv
 
 class TopContributorsSpider(scrapy.Spider):
     name = "top_contributors"
-    headers = {
-        'Authorization': 'Bearer ' + os.environ['AUTH_TOKEN'],
-    }
 
     TOP_CONTRIBUTORS = 5
 
@@ -64,14 +61,14 @@ class TopContributorsSpider(scrapy.Spider):
     def start_requests(self):
         libraries = self.load_libraries()
         for library in libraries:
-            yield scrapy.Request(self.get_contributors_url(library), headers=self.headers, callback=self.parse_contributors, meta=library)
+            yield scrapy.Request(self.get_contributors_url(library), callback=self.parse_contributors, meta=library)
 
     def parse_contributors(self, response):
         meta = response.meta
         contributors = json.loads(response.text)
         for contributor in contributors:
             meta['login'] = contributor['login']
-            yield scrapy.Request(self.get_commits_list_url(meta), headers=self.headers, callback=self.parse_commits, meta=meta)
+            yield scrapy.Request(self.get_commits_list_url(meta), callback=self.parse_commits, meta=meta)
 
     def parse_commits(self, response):
         meta = response.meta
