@@ -49,11 +49,11 @@ class ToggledReposSpider(scrapy.Spider):
 
         return None
 
-    def as_params(self, prefix, traceset_value, file_descriptors, descriptors_type):
+    def as_params(self, prefix, traceset_values, file_descriptors, descriptors_type):
         params_template = Template("q=${search_string}+in:file+${extensions_or_filenames}+size:${start}..${end}")
 
         return params_template.substitute({
-            'search_string': '%s+%s' % (prefix, traceset_value),
+            'search_string': '%s+%s' % (prefix, '+'.join(traceset_values)),
             'extensions_or_filenames': '+'.join(['%s:%s' %(descriptors_type, fd) for fd in file_descriptors]),
             'start': self.min_filesize,
             'end': self.max_filesize
@@ -64,11 +64,11 @@ class ToggledReposSpider(scrapy.Spider):
             file_descriptors = matcher.get('file_descriptors')
             descriptors_type = matcher.get('descriptors_type')
             for prefix, template in get_prefixes(matcher):
-                for traceset_value in traces_in_template(traceset, template):
+                for traceset_values in traces_in_template(traceset, template):
                     url_template = Template(self.search_template)
                     yield (
                         url_template.substitute({
-                            'params': self.as_params(prefix, traceset_value, file_descriptors, descriptors_type),
+                            'params': self.as_params(prefix, traceset_values, file_descriptors, descriptors_type),
                             'page': page,
                             'per_page': self.per_page
                         }),

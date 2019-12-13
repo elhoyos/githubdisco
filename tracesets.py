@@ -641,11 +641,13 @@ def traces_in_template(traceset, template):
     matcher template.
     """
     seen = set()
-    for dict_items in [trace.items() for trace in traceset.get('traces')]:
-        for key, value in dict_items:
-            if keys_in_template([key], template) and value not in seen:
-                seen.add(value)
-                yield value
+    for trace in traceset.get('traces'):
+        keys = trace.keys()
+        values = trace.values()
+        value_trace = '_____'.join(values)
+        if keys_in_template(keys, template) and value_trace not in seen:
+            seen.add(value_trace)
+            yield list(values)
 
 def regexps(traceset, file_descriptors=list()):
     """

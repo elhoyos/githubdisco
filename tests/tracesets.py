@@ -20,7 +20,7 @@ class TestTraceSets(unittest.TestCase):
             'template': '${bar}',
             'prefixes': ['']
         }
-        values = [value for value in traces_in_template(traceset, template)]
+        values = next(traces_in_template(traceset, template), [])
         self.assertSequenceEqual(values, [])
 
     def test_traces_in_template_unique_values(self):
@@ -39,8 +39,25 @@ class TestTraceSets(unittest.TestCase):
             'template': '${foo}',
             'prefixes': ['']
         }
-        values = [value for value in traces_in_template(traceset, template)]
+        values = next(traces_in_template(traceset, template), [])
         self.assertSequenceEqual(values, ['bar'])
+
+    def test_traces_in_template_multiple_values_in_same_trace(self):
+        traceset = {
+            'traces': [
+                {
+                    'foo': 'bar',
+                    'baz': 'car'
+                },
+            ]
+        }
+
+        template = {
+            'template': '${foo}',
+            'prefixes': ['']
+        }
+        values = next(traces_in_template(traceset, template), [])
+        self.assertSequenceEqual(values, ['bar', 'car'])
 
     @patch('matchers.MATCHERS', {
         'my_lang_family': [
