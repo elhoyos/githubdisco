@@ -1,4 +1,4 @@
-from matchers import get_regexps
+from matchers import get_regexps, keys_in_template
 
 TRACESETS = [
     {
@@ -635,7 +635,7 @@ TRACESETS = [
 ]
 
 
-def traces_in_template(traceset, matcher_template):
+def traces_in_template(traceset, template):
     """
     Yields unique traceset values of a library that are present in a
     matcher template.
@@ -643,7 +643,7 @@ def traces_in_template(traceset, matcher_template):
     seen = set()
     for dict_items in [trace.items() for trace in traceset.get('traces')]:
         for key, value in dict_items:
-            if key in matcher_template and value not in seen:
+            if keys_in_template([key], template) and value not in seen:
                 seen.add(value)
                 yield value
 

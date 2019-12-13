@@ -16,7 +16,11 @@ class TestTraceSets(unittest.TestCase):
             ]
         }
 
-        values = [value for value in traces_in_template(traceset, '${bar}')]
+        template = {
+            'template': '${bar}',
+            'prefixes': ['']
+        }
+        values = [value for value in traces_in_template(traceset, template)]
         self.assertSequenceEqual(values, [])
 
     def test_traces_in_template_unique_values(self):
@@ -31,7 +35,11 @@ class TestTraceSets(unittest.TestCase):
             ]
         }
 
-        values = [value for value in traces_in_template(traceset, '${foo}')]
+        template = {
+            'template': '${foo}',
+            'prefixes': ['']
+        }
+        values = [value for value in traces_in_template(traceset, template)]
         self.assertSequenceEqual(values, ['bar'])
 
     @patch('matchers.MATCHERS', {
@@ -39,7 +47,12 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['txt'],
                 'descriptors_type': 'extension',
-                'templates': ['${foo}'],
+                'templates': [
+                    {
+                        'template': '${foo}',
+                        'prefixes': [''],
+                    }
+                ]
             },
         ]
     })
@@ -62,7 +75,12 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['java'],
                 'descriptors_type': 'extension',
-                'templates': ['${foo}'],
+                'templates': [
+                    {
+                        'template': '${foo}',
+                        'prefixes': [''],
+                    }
+                ]
             },
         ]
     })
@@ -84,7 +102,12 @@ class TestTraceSets(unittest.TestCase):
             {
                 'file_descriptors': ['java', 'txt'],
                 'descriptors_type': 'extension',
-                'templates': ['${foo}'],
+                'templates': [
+                    {
+                        'template': '${foo}',
+                        'prefixes': [''],
+                    }
+                ]
             },
         ]
     })

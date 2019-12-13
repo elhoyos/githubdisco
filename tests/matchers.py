@@ -1,5 +1,5 @@
 import unittest
-from matchers import MATCHERS, get_regexps, keys_in_template
+from matchers import MATCHERS, get_regexps, keys_in_template, get_prefixes
 from textwrap import dedent
 
 tests = [
@@ -459,10 +459,35 @@ class TestMatchers(unittest.TestCase):
                     raise LookupError
 
     def test_keys_in_template(self):
-        self.assertTrue(keys_in_template(['foo', 'bar'], '${bar}'))
+        template = {
+            'template': '${bar}',
+            'prefixes': [''],
+        }
+        self.assertTrue(keys_in_template(['foo', 'bar'], template))
 
     def test_keys_not_in_template(self):
-        self.assertFalse(keys_in_template(['foo', 'baz'], '${bar}'))
+        template = {
+            'template': '${bar}',
+            'prefixes': [''],
+        }
+        self.assertFalse(keys_in_template(['foo', 'baz'], template))
+
+    def test_get_prefixes(self):
+        matcher = {
+            'file_descriptors': ['txt'],
+            'descriptors_type': 'extension',
+            'templates': [
+                {
+                    'template': '${trace_key}',
+                    'prefixes': ['import', 'new'],
+                },
+            ],
+        }
+        prefixes_templates = [(prefix, template) for prefix, template in get_prefixes(matcher)]
+        self.assertSequenceEqual(prefixes_templates, [
+            ('import', matcher.get('templates')[0]),
+            ('new', matcher.get('templates')[0])
+        ])
 
 if __name__ == '__main__':
     unittest.main()

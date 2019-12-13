@@ -6,87 +6,156 @@ MATCHERS = {
     # Each key represents a language family
     # The language family is a string in which each language
     # is separated by a comma.
-    # Languages must adhere to its name in GitHub.
     'C#,Visual Basic': [
         {
             'file_descriptors': ['json'],
             'descriptors_type': 'extension',
-            'templates': ['dependencies":[\S\W]*"${package_name}"'],
+            'templates': [
+                {
+                    'template': 'dependencies":[\S\W]*"${package_name}"',
+                    'prefixes': ['dependencies'],
+                }
+            ],
         },
         {
             'file_descriptors': ['config'],
             'descriptors_type': 'extension',
-            'templates': ['(?i:<package\s*id=)"${package_name}'],
+            'templates': [
+                {
+                    'template': '(?i:<package\s*id=)"${package_name}',
+                    'prefixes': ['package'],
+                },
+            ],
         },
         {
             'file_descriptors': ['csproj', 'vbproj'],
             'descriptors_type': 'extension',
-            'templates': ['(?i:<PackageReference\s*Include=|<Reference\s*Include=)"${package_name}'],
+            'templates': [
+                {
+                    'template': '(?i:<PackageReference\s*Include=|<Reference\s*Include=)"${package_name}',
+                    'prefixes': ['Reference'],
+                },
+            ],
         },
     ],
     'Go': [
         {
             'file_descriptors': ['go'],
             'descriptors_type': 'extension',
-            'templates': ['(?i)${import_or_usage}'],
+            'templates': [
+                {
+                    'template': '(?i)${import_or_usage}',
+                    'prefixes': ['import'],
+                },
+            ],
         },
     ],
     'Java,Kotlin': [
         {
             'file_descriptors': ['gradle', 'gradle.kts'],
             'descriptors_type': 'extension',
-            'templates': ['${artifact_name}'],
+            'templates': [
+                {
+                    'template': '${artifact_name}',
+                    'prefixes': [''], # No prefixes, artifact names are specific enough
+                },
+            ],
         },
         {
             'file_descriptors': ['java'],
             'descriptors_type': 'extension',
-            'templates': ['import.+${import_or_usage}'],
+            'templates': [
+                {
+                    'template': 'import.+${import_or_usage}',
+                    'prefixes': ['import'],
+                },
+            ],
         },
         {
             'file_descriptors': ['xml'],
             'descriptors_type': 'extension',
-            'templates': ['(?i:groupid>${group_id}<\/groupid>\s+<artifactid>${artifact_id}<\/artifactid>)'],
+            'templates': [
+                {
+                    'template': '(?i:groupid>${group_id}<\/groupid>\s+<artifactid>${artifact_id}<\/artifactid>)',
+                    'prefixes': ['groupid'],
+                },
+            ],
         },
     ],
     'JavaScript,TypeScript': [
         {
             'file_descriptors': ['json'],
             'descriptors_type': 'extension',
-            'templates': ['(?:devDependencies|dependencies)":[\S\W]*"${artifact_name}"'],
+            'templates': [
+                {
+                    'template': '(?:devDependencies|dependencies)":[\S\W]*"${artifact_name}"',
+                    'prefixes': ['dependencies'],
+                },
+            ],
         },
         {
             'file_descriptors': ['js', 'jsx', 'ts', 'tsx'],
             'descriptors_type': 'extension',
-            'templates': ['(?:require.+|import.+|from.+)(?:"|\')${artifact_name}(?:"|\')'],
+            'templates': [
+                {
+                    'template': '(?:require.+|import.+|from.+)(?:"|\')${artifact_name}(?:"|\')',
+                    'prefixes': ['require', 'import', 'from'],
+                },
+            ],
         },
     ],
     'Objective-C,Swift': [
         {
             'file_descriptors': ['Podfile'],
             'descriptors_type': 'filename',
-            'templates': ['pod (?:`|\'|")${artifact_name}(?:`|\'|")'],
+            'templates': [
+                {
+                    'template': 'pod (?:`|\'|")${artifact_name}(?:`|\'|")',
+                    'prefixes': ['pod'],
+                },
+            ],
         },
         {
             'file_descriptors': ['Cartfile'],
             'descriptors_type': 'filename',
-            'templates': ['github "${artifact_name}"'],
+            'templates': [
+                {
+                    'template': 'github "${artifact_name}"',
+                    'prefixes': ['github'],
+                },
+            ],
         },
         {
             'file_descriptors': ['m', 'h', 'swift'],
             'descriptors_type': 'extension',
-            'templates': ['#?(?:import|include) "?${import_or_usage}"?'],
+            'templates': [
+                {
+                    'template': '#?(?:import|include) "?${import_or_usage}"?',
+                    'prefixes': ['import', 'include'],
+                },
+            ],
         },
     ],
     'PHP': [
         {
             'file_descriptors': ['json'],
             'descriptors_type': 'extension',
-            'templates': ['require":[\S\W]*"${artifact_name}"'],
+            'templates': [
+                {
+                    'template': 'require":[\S\W]*"${artifact_name}"',
+                    'prefixes': ['require'],
+                },
+            ],
         },
         {
             'file_descriptors': ['php'],
             'descriptors_type': 'extension',
-            'templates': ["(?:use|new) ${import_or_usage}"],
+            'templates': [
+                {
+                    'template': '(?:use|new) ${import_or_usage}',
+                    'prefixes': ['use', 'new'],
+                },
+            ],
         },
     ],
     'Python': [
@@ -94,46 +163,78 @@ MATCHERS = {
             'file_descriptors': ['py'],
             'descriptors_type': 'extension',
             'templates': [
-                'install_requires=[\S\W]*(?:"|\')${artifact_name}(?:\[|\s+|~|=|>|<|!|"|\')',
-                '(?:import ${import_or_usage}|from ${import_or_usage}[\w\.\-]* import)',
-                '(?:INSTALLED_APPS|THIRD_PARTY_APPS|MIDDLEWARE_CLASSES)[\S\W]*(?:"|\')${django_setup}'
+                {
+                    'template': 'install_requires=[\S\W]*(?:"|\')${artifact_name}(?:\[|\s+|~|=|>|<|!|"|\')',
+                    'prefixes': ['install_requires'],
+                },
+                {
+                    'template': '(?:import ${import_or_usage}|from ${import_or_usage}[\w\.\-]* import)',
+                    'prefixes': ['import', 'from'],
+                },
+                {
+                    'template': '(?:INSTALLED_APPS|THIRD_PARTY_APPS|MIDDLEWARE_CLASSES)[\S\W]*(?:"|\')${django_setup}',
+                    'prefixes': ['INSTALLED_APPS', 'THIRD_PARTY_APPS', 'MIDDLEWARE_CLASSES'],
+                },
             ],
         },
         {
             'file_descriptors': ['txt'],
             'descriptors_type': 'extension',
-            'templates': ['(?m:^${artifact_name}[\S\W]+)'],
+            'templates': [
+                {
+                    'template': '(?m:^${artifact_name}[\S\W]+)',
+                    'prefixes': [''], # No prefix, dependencies file syntax definition
+                },
+            ],
         },
     ],
     'Ruby': [
         {
             'file_descriptors': ['Gemfile'],
             'descriptors_type': 'filename',
-            'templates': ['gem (?:"|\')${artifact_name}(?:"|\')'],
+            'templates': [
+                {
+                    'template': 'gem (?:"|\')${artifact_name}(?:"|\')',
+                    'prefixes': ['gem'],
+                },
+            ],
         },
         {
             'file_descriptors': ['rb'],
             'descriptors_type': 'extension',
-            'templates': ['require (?:"|\')${import_or_usage}(?:"|\')'],
+            'templates': [
+                {
+                    'template': 'require (?:"|\')${import_or_usage}(?:"|\')',
+                    'prefixes': ['require'],
+                },
+            ],
         }
     ],
     'Scala': [
         {
             'file_descriptors': ['scala', 'sc', 'sbt'],
             'descriptors_type': 'extension',
-            'templates': ['(?:import|new).+${import_or_usage}'],
+            'templates': [
+                {
+                    'template': '(?:import|new).+${import_or_usage}',
+                    'prefixes': ['import', 'new'],
+                },
+            ],
         },
     ]
 }
 
 def keys_in_template(keys, template):
-    return next((True for key in keys if key in template), False)
+    """
+    Returns a boolean indicating when at least one key is in the template
+    """
+    return next((True for key in keys if key in template['template']), False)
 
 def get_regexps(lang_family='', file_descriptor='', **placeholders):
     keys = placeholders.keys()
     for matcher in MATCHERS.get(lang_family):
         if file_descriptor in matcher['file_descriptors']:
-            for matcher_template in [template for template in matcher['templates'] if keys_in_template(keys, template)]:
+            for matcher_template in [template['template'] for template in matcher['templates'] if keys_in_template(keys, template)]:
                 template = Template(r'' + matcher_template)
                 placeholders_regexp = { key: value.replace('\\', '\\\\') for key, value in placeholders.items() }
 
@@ -145,3 +246,12 @@ def get_regexps(lang_family='', file_descriptor='', **placeholders):
                     pass
                 except:
                     raise
+
+def get_prefixes(matcher):
+    """
+    Yields tuples with a prefix and a template with all the
+    templates of a matcher
+    """ 
+    for template in matcher.get('templates'):
+        for prefix in template.get('prefixes'):
+            yield prefix, template

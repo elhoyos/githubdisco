@@ -5,7 +5,7 @@ import re
 import base64
 from string import Template
 from tracesets import TRACESETS, traces_in_template, regexps
-from matchers import MATCHERS
+from matchers import MATCHERS, get_prefixes
 from scrapy.shell import inspect_response
 from scrapy.exceptions import IgnoreRequest
 
@@ -49,11 +49,11 @@ class ToggledReposSpider(scrapy.Spider):
 
         return None
 
-    def as_params(self, search_string, file_descriptors, descriptors_type):
+    def as_params(self, prefix, traceset_value, file_descriptors, descriptors_type):
         params_template = Template("q=${search_string}+in:file+${extensions_or_filenames}+size:${start}..${end}")
 
         return params_template.substitute({
-            'search_string': '%22' + search_string + '%22',
+            'search_string': '%s+%s' % (prefix, traceset_value),
             'extensions_or_filenames': '+'.join(['%s:%s' %(descriptors_type, fd) for fd in file_descriptors]),
             'start': self.min_filesize,
             'end': self.max_filesize
@@ -63,12 +63,12 @@ class ToggledReposSpider(scrapy.Spider):
         for matcher in self.matchers.get(traceset.get('lang_family')):
             file_descriptors = matcher.get('file_descriptors')
             descriptors_type = matcher.get('descriptors_type')
-            for template in matcher.get('templates'):
+            for prefix, template in get_prefixes(matcher):
                 for traceset_value in traces_in_template(traceset, template):
                     url_template = Template(self.search_template)
                     yield (
                         url_template.substitute({
-                            'params': self.as_params(traceset_value, file_descriptors, descriptors_type),
+                            'params': self.as_params(prefix, traceset_value, file_descriptors, descriptors_type),
                             'page': page,
                             'per_page': self.per_page
                         }),
@@ -137,6 +137,9 @@ class ToggledReposSpider(scrapy.Spider):
                 yield content_request
 
             if self.needs_a_split(json_response):
+                # TODO: do next page if split yields no follow request
+                # From previous runs this is unlikely, but possible for simplistic search terms.
+                # In any case, we would hit the 1k limit.
                 self.logger.debug('No next page for %s, needs a split' % response.url)
             else:
                 yield self.get_next_page_request(page, response)
