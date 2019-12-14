@@ -24,8 +24,7 @@ ROBOTSTXT_OBEY = False
 
 FEED_FORMAT = 'csv'
 FEED_EXPORT_FIELDS = None # Each spider yields to a dict with the fields
-# TODO: have augmented_toggled_repos and top_contributors spiders to define their fields
-# FEED_EXPORT_FIELDS = ['repo_name', 'language', 'size_bytes', 'number_of_commits', 'last_commit_ts', 'forked_from', 'number_of_contributors', 'repo_not_found', 'first_commit_sha', 'created_at'] # augmented_toggled_repos
+# TODO: have top_contributors spiders to define their fields
 # FEED_EXPORT_FIELDS = ['library', 'repo_name', 'login', 'name', 'email'] # top_contributors
 
 # In some unfrequent situations a 403 is returned due to

@@ -13,9 +13,11 @@ from calendar import timegm
 
 class AugmentToggledReposSpider(scrapy.Spider):
     name = "augment_toggled_repos"
+    csv_fieldnames = ['repo_name', 'language', 'size_bytes', 'number_of_commits', 'last_commit_ts', 'forked_from', 'number_of_contributors', 'repo_not_found', 'first_commit_sha', 'created_at']
     handle_httpstatus_list = [404]
     augmented = {}
     max_items_per_page = 100
+    repos_filename = '___repos_filename___' # should be passed as argument with -a 
 
     def get_contributors_url(self, meta):
         return ('https://api.github.com/repos/{repo_name}/contributors?anon=1&page={page}&per_page=' + str(self.max_items_per_page)).format_map(meta)
@@ -23,14 +25,17 @@ class AugmentToggledReposSpider(scrapy.Spider):
     def get_commits_list_url(self, meta):
         return ('https://api.github.com/repos/{repo_name}/commits?page={page}&per_page=1').format_map(meta)
 
+    def init_augmented_data(self, repo_name):
+        augmented_data = { key: None for key in self.csv_fieldnames }
+        augmented_data['repo_name'] = repo_name
+        augmented_data['___stage___'] = 0
+        return augmented_data
+
     def start_requests(self):
         toggled_repos = self.load_toggled_repos()
         for repo in toggled_repos:
             repo_name = repo['repo_name']
-            self.augmented[repo_name] = {
-                'repo_name': repo_name,
-                '___stage___': 0
-            }
+            self.augmented[repo_name] = self.init_augmented_data(repo_name)
             meta = { 'repo_name': repo_name, 'page': 1 }
             repo_info_url = 'https://api.github.com/repos/{0}'.format(repo_name)
             yield scrapy.Request(url=repo_info_url, callback=self.parse_repo_info, meta=meta)
