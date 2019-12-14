@@ -1,5 +1,7 @@
 from matchers import get_regexps, keys_in_template
 
+# TODO: Set the repo of the library and stop depending on legacy trace_sets.csv
+# to filter_results.py
 TRACESETS = [
     {
         'library': 'unleash-client-dotnet',
