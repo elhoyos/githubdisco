@@ -1,5 +1,6 @@
 # pylint: disable=anomalous-backslash-in-string
 
+import re
 from string import Template
 
 MATCHERS = {
@@ -177,16 +178,6 @@ MATCHERS = {
                 },
             ],
         },
-        {
-            'file_descriptors': ['txt'],
-            'descriptors_type': 'extension',
-            'templates': [
-                {
-                    'template': '(?m:^${artifact_name}[\S\W]+)',
-                    'prefixes': [''], # No prefix, dependencies file syntax definition
-                },
-            ],
-        },
     ],
     'Ruby': [
         {
@@ -235,7 +226,7 @@ def get_regexps(lang_family='', file_descriptor='', **placeholders):
     for matcher in MATCHERS.get(lang_family):
         if file_descriptor in matcher['file_descriptors']:
             for matcher_template in [template['template'] for template in matcher['templates'] if keys_in_template(keys, template)]:
-                template = Template(r'' + matcher_template)
+                template = Template(r'' + re.sub(r'\$(\))?$', r'$$\1', matcher_template))
                 placeholders_regexp = { key: value.replace('\\', '\\\\') for key, value in placeholders.items() }
 
                 try:
